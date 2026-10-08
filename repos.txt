@@ -1,0 +1,12 @@
+# Which repos get published to proofprotocol.io/specs/
+#
+# owner:   every PUBLIC repo of that GitHub org or user (forks and archived skipped)
+# include: one extra public repo from anywhere
+# exclude: skip a repo
+#
+# New public repos under an owner appear on the next build automatically.
+
+owner: proofprotocol
+
+# include: hackerverse/some-public-repo
+# exclude: proofprotocol/scratch-repo

@@ -1,0 +1,77 @@
+name: Publish proofprotocol.io/specs
+
+on:
+  push:
+    branches: [main]          # edit repos.txt / home.md / branding -> rebuild
+  schedule:
+    - cron: "17 9 * * *"      # daily 09:17 UTC (3:17am MDT): picks up changes in every repo
+  workflow_dispatch:          # manual "Run workflow" button
+
+permissions:
+  contents: read
+
+concurrency:
+  group: specs-deploy
+  cancel-in-progress: true
+
+env:
+  SITE_URL: https://proofprotocol.io/specs
+  GSC_PROPERTY: sc-domain:proofprotocol.io
+  ORG_URL: https://github.com/proofprotocol
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install markdown
+
+      - name: Clone all repos
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SRC_DIR: src
+          REPOS_JSON: repos.json
+        run: python .github/scripts/fetch_repos.py
+
+      - name: Build site
+        env:
+          SRC_DIR: src
+          REPOS_JSON: repos.json
+          HOME_MD: home.md
+        run: python .github/scripts/build_site.py
+
+      # FTP account in cPanel is locked to public_html/specs, so "./" here = that folder.
+      - name: Upload to hosting.com (FTPS)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./_site/
+          server-dir: ./
+
+      # Optional: resubmit sitemap to Search Console. Skipped until GSC_SERVICE_ACCOUNT secret exists.
+      - name: Submit sitemap to Google Search Console
+        env:
+          GSC_KEY: ${{ secrets.GSC_SERVICE_ACCOUNT }}
+        if: env.GSC_KEY != ''
+        run: |
+          pip install --quiet google-api-python-client google-auth
+          python - <<'EOF'
+          import json, os
+          from google.oauth2 import service_account
+          from googleapiclient.discovery import build
+          creds = service_account.Credentials.from_service_account_info(
+              json.loads(os.environ["GSC_KEY"]),
+              scopes=["https://www.googleapis.com/auth/webmasters"])
+          gsc = build("searchconsole", "v1", credentials=creds)
+          sitemap = os.environ["SITE_URL"].rstrip("/") + "/sitemap.xml"
+          gsc.sitemaps().submit(siteUrl=os.environ["GSC_PROPERTY"], feedpath=sitemap).execute()
+          print("SUBMITTED", sitemap, "->", os.environ["GSC_PROPERTY"])
+          EOF
