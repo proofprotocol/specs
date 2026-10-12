@@ -54,7 +54,7 @@ NAV = [  # (label, url). Section anchors on proofprotocol.io: verify and adjust.
     ("GitHub", "__GITHUB__"),
 ]
 NAV_CTA = ("ProofRegister", "https://proofprotocol.io/#proofregister")
-FOOTER_LINE = "&copy; 2026 Nebulonium, Inc. Specifications licensed CC BY 4.0 / CC BY-ND 4.0."
+FOOTER_LINE = "&copy; 2026 Nebulonium, Inc. Specifications licensed CC BY 4.0 / CC BY 4.0."
 
 CSS = """
 :root{--bg:#050505;--panel:#0c0c0c;--line:#1c1c1c;--text:#ededed;--body:#cccccc;--muted:#aaaaaa;--accent:#9ffe00;--cyan:#38c6d9}
